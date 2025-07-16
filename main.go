@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -120,7 +121,15 @@ func hideConsole() {
 }
 
 func loadConfig() error {
-	configPath := "config.json"
+	// 実行ファイルのディレクトリを取得
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("実行ファイルのパス取得に失敗: %v", err)
+	}
+	
+	exeDir := filepath.Dir(exePath)
+	configPath := filepath.Join(exeDir, "config.json")
+	
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// デフォルト設定を作成
 		config = Config{
