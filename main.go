@@ -27,6 +27,10 @@ type Config struct {
 		Name        string `json:"name"`
 		DisplayName string `json:"display_name"`
 	} `json:"services"`
+	Urls []struct {
+		URL         string `json:"url"`
+		DisplayName string `json:"display_name"`
+	} `json:"urls"`
 }
 
 type ServiceStatus struct {
@@ -40,6 +44,7 @@ var (
 	config     Config
 	services   []ServiceStatus
 	statusMenu map[string]*systray.MenuItem
+	urlMenu    map[string]*systray.MenuItem
 )
 
 func main() {
@@ -120,6 +125,19 @@ func hideConsole() {
 	proc.Call()
 }
 
+// URLをブラウザで開く関数
+func openUrl(url string) {
+	verbPtr, _ := syscall.UTF16PtrFromString("open")
+	urlPtr, _ := syscall.UTF16PtrFromString(url)
+	var showCmd int32 = 1 //SW_NORMAL
+
+	err := windows.ShellExecute(0, verbPtr, urlPtr, nil, nil, showCmd)
+	if err != nil {
+		log.Printf("URL %s のオープンに失敗: %v", url, err)
+		showNotification("エラー", fmt.Sprintf("URL %s を開けませんでした", url))
+	}
+}
+
 func loadConfig() error {
 	// 実行ファイルのディレクトリを取得
 	exePath, err := os.Executable()
@@ -196,6 +214,17 @@ func createMenu() {
 
 	systray.AddSeparator()
 
+	// URLメニュー項目
+	urlMenu = make(map[string]*systray.MenuItem)
+	for _, urlConfig := range config.Urls {
+		menuItem := systray.AddMenuItem(urlConfig.DisplayName, urlConfig.DisplayName+"を開く")
+		urlMenu[urlConfig.URL] = menuItem
+	}
+
+	if len(config.Urls) > 0 {
+		systray.AddSeparator()
+	}
+
 	// 操作メニュー
 	var startAll, stopAll *systray.MenuItem
 	if len(services) > 1 {
@@ -253,6 +282,16 @@ func createMenu() {
 				toggleService(name)
 			}
 		}(serviceName, menuItem)
+	}
+
+	// URLメニューアイテムのイベント処理
+	for url, menuItem := range urlMenu {
+		go func(u string, item *systray.MenuItem) {
+			for {
+				<-item.ClickedCh
+				openUrl(u)
+			}
+		}(url, menuItem)
 	}
 }
 

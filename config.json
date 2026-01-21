@@ -3,5 +3,8 @@
   "services": [
     {"name": "postgresql-x64-16", "display_name": "PostgreSQL"},
     {"name": "Everything", "display_name": "Everything"}
+  ],
+  "urls": [
+    {"url": "https://example.com", "display_name": "Example"}
   ]
 }
